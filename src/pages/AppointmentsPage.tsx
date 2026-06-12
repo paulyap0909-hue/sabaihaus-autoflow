@@ -9,8 +9,9 @@ export function AppointmentsPage() {
   return (
     <>
       <PageHeader
-        title="Appointments"
-        description="Manage bookings, therapist schedule and treatment flow"
+        eyebrow="Front desk intelligence"
+        title="Appointment Intelligence Center"
+        description="Coordinate therapist calendars, rooms, guest flow and revenue-aware treatment decisions from one calm workspace."
         action={<button className="primary-button" type="button" onClick={() => setIsCreateOpen(true)}><CalendarPlus size={16} /> New Appointment</button>}
       />
       <AppointmentsModule

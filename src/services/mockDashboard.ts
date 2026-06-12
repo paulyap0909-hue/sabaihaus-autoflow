@@ -49,7 +49,7 @@ export const todaysAppointments: DashboardAppointment[] = [
     customer: 'Amelia Tan',
     service: 'Aromatherapy Massage · 90 min',
     therapist: 'Nok',
-    status: 'In Treatment',
+    status: 'In Progress',
     color: 'teal',
   },
   {

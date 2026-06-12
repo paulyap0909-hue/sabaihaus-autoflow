@@ -39,6 +39,8 @@ mock frontend remains usable without environment variables.
 - `notification_templates`
 - `notification_queue`
 - `appointment_events`
+- `inventory_movements` (Phase 4.5)
+- `revenue_records` (Phase 4.5)
 
 All business tables use UUID primary keys and include `organization_id`,
 `branch_id`, `created_at`, and `updated_at`. The migration also adds:
@@ -54,22 +56,33 @@ user membership, and Row Level Security are designed together.
 
 ## Appointment Completion Flow
 
-`completeAppointment` currently creates a typed execution plan and performs no
-database writes. The planned flow is:
+Phase 4.5 implements appointment completion as one transactional Supabase RPC:
+`process_appointment_completion`.
 
-1. Lock and validate the appointment.
-2. Change appointment status to `Completed`.
-3. Record an immutable `appointment_events` completion event.
-4. Redeem a package session when the appointment used a customer package.
-5. Calculate and create the therapist commission entry.
-6. Apply service inventory usage rules and create usage logs.
-7. Create an aftercare or rebooking follow-up task.
-8. Queue the configured after-treatment notification.
-9. Update the customer's last visit and lifetime value.
+1. Validate the tenant, branch, idempotency key, and `In Progress` status.
+2. Lock the appointment row to prevent concurrent completion.
+3. Change the appointment status to `Completed`.
+4. Increment customer visits and spending, then update the last visit date.
+5. Redeem one package session when the appointment used a package.
+6. Apply service inventory rules and create usage and movement records.
+7. Calculate therapist commission from the active service rule.
+8. Recalculate the customer's membership tier from lifetime spending.
+9. Recognize appointment revenue in the revenue ledger.
+10. Create a rebooking follow-up task due 30 days later.
+11. Store the complete result in `appointment_events`.
 
-The command includes an `idempotencyKey`. A future server-side transaction must
-use it to prevent duplicate package, commission, inventory, and notification
-effects when completion is retried.
+The database rejects direct transitions to `Completed`; callers must use the RPC
+so no completion can bypass its business effects. The RPC is atomic: insufficient
+package balance, insufficient inventory, an invalid status, or another error
+rolls back every effect.
+
+The command includes an `idempotencyKey`. Retrying the same command returns the
+stored event result without creating duplicate package, inventory, commission,
+revenue, or follow-up records.
+
+The frontend keeps working without Supabase through a demo executor with the
+same TypeScript result contract. Completing a mock appointment updates the
+Appointment Event Pulse dashboard widget in memory.
 
 ## Repository Boundary
 
@@ -82,8 +95,10 @@ effects when completion is retried.
 - Inventory
 - Notifications
 
-These functions currently throw a clear `not implemented` error. They contain no
-Supabase queries and are not used by the UI.
+Most functions still throw a clear `not implemented` error. Appointment
+completion is the first implemented repository operation and calls the
+transactional RPC. The mock UI uses the demo executor until Supabase Auth and
+tenant policies are connected.
 
 ## Future Integration Steps
 
@@ -93,12 +108,10 @@ Supabase queries and are not used by the UI.
 4. Type the Supabase client with the generated `Database` contract.
 5. Implement repository queries and mapping between database rows and domain
    models.
-6. Move appointment completion into a server-side database function or Edge
-   Function with a single transaction and row locking.
-7. Add idempotency, retry handling, audit logs, and reversal workflows.
-8. Add integration tests for package redemption, commission calculation,
+6. Add reversal and correction workflows for completed appointments.
+7. Add integration tests for package redemption, commission calculation,
    inventory usage, follow-up creation, and notification scheduling.
-9. Migrate one UI module at a time from mock repositories to Supabase-backed
+8. Migrate one UI module at a time from mock repositories to Supabase-backed
    repositories behind feature flags.
 
 No production database should use this schema until authentication and RLS

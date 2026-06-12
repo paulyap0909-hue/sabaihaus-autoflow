@@ -1,12 +1,13 @@
 export type AppointmentCompletionStepType =
   | 'appointment.status.completed'
-  | 'appointment.event.created'
+  | 'customer.statistics.updated'
   | 'package.redemption.created'
-  | 'commission.entry.created'
   | 'inventory.usage.deducted'
+  | 'commission.entry.created'
+  | 'membership.tier.recalculated'
+  | 'revenue.record.created'
   | 'follow_up.task.created'
-  | 'notification.queue.created'
-  | 'customer.visit.updated'
+  | 'appointment.event.created'
 
 export interface CompleteAppointmentCommand {
   organizationId: string
@@ -22,19 +23,55 @@ export interface CompleteAppointmentCommand {
   idempotencyKey: string
 }
 
-export interface AppointmentCompletionStep {
+export interface AppointmentCompletionStepResult {
   type: AppointmentCompletionStepType
-  required: boolean
-  description: string
-  input: Record<string, string | number | boolean | undefined>
+  status: 'completed' | 'skipped'
+  recordsCreated: number
+  amountMinor?: number
+  quantity?: number
+  message: string
 }
 
-export interface AppointmentCompletionPlan {
-  command: CompleteAppointmentCommand
-  status: 'planned'
-  steps: AppointmentCompletionStep[]
+export interface AppointmentCompletionEventResult {
+  eventId: string
+  appointmentId: string
+  completedAt: string
+  idempotencyKey: string
+  idempotentReplay: boolean
+  customer: {
+    totalVisits: number
+    totalSpentMinor: number
+    lastVisitAt: string
+  }
+  package: {
+    redemptionsCreated: number
+    remainingSessions: number | null
+  }
+  inventory: {
+    movementsCreated: number
+    quantityConsumed: number
+  }
+  commission: {
+    entriesCreated: number
+    amountMinor: number
+  }
+  membership: {
+    membershipsUpdated: number
+    tier: string | null
+  }
+  revenue: {
+    recordsCreated: number
+    amountMinor: number
+  }
+  followUp: {
+    tasksCreated: number
+    dueAt: string
+  }
+  steps: AppointmentCompletionStepResult[]
 }
 
 export interface AppointmentCompletionDependencies {
-  now: () => string
+  executeCompletion: (
+    command: CompleteAppointmentCommand,
+  ) => Promise<AppointmentCompletionEventResult>
 }

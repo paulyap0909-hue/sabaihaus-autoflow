@@ -1,8 +1,8 @@
 export type AppointmentStatus =
-  | 'Booked'
+  | 'Pending'
   | 'Confirmed'
   | 'Checked In'
-  | 'In Treatment'
+  | 'In Progress'
   | 'Completed'
   | 'Cancelled'
   | 'No Show'
@@ -22,5 +22,21 @@ export interface Appointment {
   status: AppointmentStatus
   price: number
   source: AppointmentSource
+  googleEventId?: string
   notes?: string
+}
+
+export interface AppointmentCustomerInsight {
+  membershipTier: string
+  packageBalance: number
+  lifetimeSpending: number
+}
+
+export interface TreatmentRoom {
+  id: string
+  name: string
+  zone: 'Lotus Wing' | 'Siam Wing'
+  capacity: number
+  features: string[]
+  status: 'Available' | 'Occupied' | 'Turnover'
 }

@@ -2,6 +2,7 @@ import { CalendarPlus } from 'lucide-react'
 import { MetricCard } from '../components/MetricCard'
 import { PageHeader } from '../components/PageHeader'
 import { AttentionQueue } from '../modules/dashboard/AttentionQueue'
+import { AppointmentEventPulse } from '../modules/dashboard/AppointmentEventPulse'
 import { GrowthAdvisor } from '../modules/dashboard/GrowthAdvisor'
 import { OperationsPulse } from '../modules/dashboard/OperationsPulse'
 import { TherapistSnapshot } from '../modules/dashboard/TherapistSnapshot'
@@ -29,6 +30,7 @@ export function DashboardPage() {
             <MetricCard metric={metric} key={metric.label} />
           ))}
         </section>
+        <AppointmentEventPulse />
         <OperationsPulse />
         <TodaySchedule />
         <GrowthAdvisor />

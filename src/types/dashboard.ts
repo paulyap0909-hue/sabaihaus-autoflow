@@ -13,7 +13,7 @@ export interface DashboardAppointment {
   customer: string
   service: string
   therapist: string
-  status: 'Confirmed' | 'Checked In' | 'In Treatment'
+  status: 'Confirmed' | 'Checked In' | 'In Progress'
   color: 'teal' | 'gold' | 'sand'
 }
 

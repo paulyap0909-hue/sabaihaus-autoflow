@@ -1,8 +1,13 @@
 export { completeAppointment } from './completeAppointment'
+export {
+  appointmentStatuses,
+  assertAppointmentTransition,
+  canTransitionAppointment,
+} from './statusWorkflow'
 export type {
   AppointmentCompletionDependencies,
-  AppointmentCompletionPlan,
-  AppointmentCompletionStep,
+  AppointmentCompletionEventResult,
+  AppointmentCompletionStepResult,
   AppointmentCompletionStepType,
   CompleteAppointmentCommand,
 } from './types'
