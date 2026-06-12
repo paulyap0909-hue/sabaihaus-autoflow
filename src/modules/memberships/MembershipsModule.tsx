@@ -8,9 +8,13 @@ import {
   Sparkles,
   UsersRound,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { OperationalKpi } from '../../components/OperationalKpi'
 import { memberships, membershipTiers } from '../../services/mockPhase3'
+import {
+  listMembershipPlans,
+  type MembershipPlanRecord,
+} from '../../services/repositories/membershipsRepository'
 
 const statusClass: Record<string, string> = {
   Active: 'success',
@@ -19,10 +23,46 @@ const statusClass: Record<string, string> = {
   Expired: 'danger',
 }
 
-export function MembershipsModule() {
+export function MembershipsModule({ refreshVersion = 0 }: { refreshVersion?: number }) {
   const [search, setSearch] = useState('')
   const [tier, setTier] = useState('All')
   const [status, setStatus] = useState('All')
+  const [livePlans, setLivePlans] = useState<MembershipPlanRecord[]>([])
+
+  useEffect(() => {
+    let active = true
+    listMembershipPlans()
+      .then((records) => {
+        if (active) setLivePlans(records)
+      })
+      .catch(() => {
+        if (active) setLivePlans([])
+      })
+    return () => {
+      active = false
+    }
+  }, [refreshVersion])
+
+  const tierDefinitions = [
+    ...livePlans.map((plan) => ({
+      tier: plan.tier,
+      monthlyPrice: plan.price,
+      members: 0,
+      color: plan.tier.toLowerCase(),
+      benefits: plan.benefits,
+      id: plan.id,
+      active: plan.active,
+      durationDays: plan.durationDays,
+      name: plan.name,
+    })),
+    ...membershipTiers.map((plan) => ({
+      ...plan,
+      id: `mock-${plan.tier}`,
+      active: true,
+      durationDays: 30,
+      name: `${plan.tier} Membership`,
+    })),
+  ]
 
   const filtered = useMemo(
     () =>
@@ -45,15 +85,16 @@ export function MembershipsModule() {
       </section>
 
       <section className="tier-dashboard">
-        {membershipTiers.map((item) => (
-          <article className={`tier-card ${item.color}`} key={item.tier}>
+        {tierDefinitions.map((item) => (
+          <article className={`tier-card ${item.color}`} key={item.id}>
             <div className="tier-card-top">
               <span className="tier-medallion">{item.tier === 'Diamond' ? <Gem size={19} /> : item.tier === 'Platinum' ? <Crown size={19} /> : <ShieldCheck size={19} />}</span>
-              <span>{item.members} members</span>
+              <span>{item.id.startsWith('mock-') ? `${item.members} members` : item.active ? 'Live · Active' : 'Live · Inactive'}</span>
             </div>
-            <h3>{item.tier}</h3>
+            <h3>{item.name}</h3>
             <p><strong>RM {item.monthlyPrice}</strong> / month</p>
             <ul>{item.benefits.map((benefit) => <li key={benefit}><Sparkles size={12} /> {benefit}</li>)}</ul>
+            {!item.id.startsWith('mock-') && <small className="live-record-note">Live Supabase plan · Duration UI-only</small>}
           </article>
         ))}
       </section>

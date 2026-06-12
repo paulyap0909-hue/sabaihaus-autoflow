@@ -23,6 +23,7 @@ import {
   isSupabaseConfigured,
 } from '../supabase/client'
 import type { RepositoryContext } from './types'
+import { resolveTenantContext } from '../tenant/tenantContext'
 
 export interface BusinessIntelligenceQuery {
   periodStart: string
@@ -256,17 +257,9 @@ export async function getBusinessIntelligenceSnapshot(
   return buildBusinessIntelligenceSnapshot(raw, normalizedQuery)
 }
 
-export function getBusinessIntelligenceTenantContext():
-  | RepositoryContext
-  | null {
-  const organizationId = import.meta.env.VITE_SUPABASE_ORGANIZATION_ID
-  const branchId = import.meta.env.VITE_SUPABASE_BRANCH_ID
-
-  if (!organizationId || !branchId) {
-    return null
-  }
-
-  return { organizationId, branchId }
+export async function getBusinessIntelligenceTenantContext():
+  Promise<RepositoryContext | null> {
+  return (await resolveTenantContext()).context
 }
 
 export async function loadBusinessIntelligence(
@@ -282,7 +275,7 @@ export async function loadBusinessIntelligence(
     }
   }
 
-  const context = getBusinessIntelligenceTenantContext()
+  const context = await getBusinessIntelligenceTenantContext()
 
   if (!context) {
     return {

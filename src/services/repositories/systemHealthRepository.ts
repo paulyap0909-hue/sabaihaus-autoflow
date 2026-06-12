@@ -7,6 +7,10 @@ import {
   isSupabaseConfigured,
 } from '../supabase/client'
 import type { RepositoryContext } from './types'
+import {
+  resolveTenantContext,
+  type TenantContextResolution,
+} from '../tenant/tenantContext'
 
 interface HealthTableDefinition {
   id: string
@@ -47,10 +51,10 @@ const healthTables: HealthTableDefinition[] = [
   },
 ]
 
-function configuredContext(): RepositoryContext | null {
-  const organizationId = import.meta.env.VITE_SUPABASE_ORGANIZATION_ID
-  const branchId = import.meta.env.VITE_SUPABASE_BRANCH_ID
-  return organizationId && branchId ? { organizationId, branchId } : null
+const googleConnectionsDefinition: HealthTableDefinition = {
+  id: 'google-connections',
+  label: 'Google Connections',
+  tableName: 'google_calendar_connections',
 }
 
 function elapsed(startedAt: number) {
@@ -110,6 +114,19 @@ function configurationCheck(
   }
 }
 
+function protectedGoogleConnectionsCheck(): SystemHealthCheck {
+  return {
+    ...googleConnectionsDefinition,
+    status: 'Warning',
+    indicator: 'yellow',
+    recordCount: null,
+    lastCreatedAt: null,
+    latencyMs: 0,
+    message:
+      'Google Calendar Connections table is protected by server-only RLS.',
+  }
+}
+
 async function queryTableHealth(
   definition: HealthTableDefinition,
   context: RepositoryContext,
@@ -117,7 +134,7 @@ async function queryTableHealth(
   const startedAt = performance.now()
   const { data, error, count } = await getSupabaseClient()
     .from(definition.tableName)
-    .select('created_at', { count: 'exact' })
+    .select('id, created_at', { count: 'exact' })
     .eq('organization_id', context.organizationId)
     .eq('branch_id', context.branchId)
     .order('created_at', { ascending: false })
@@ -137,52 +154,24 @@ async function queryTableHealth(
   )
 }
 
-async function queryGoogleConnections(): Promise<SystemHealthCheck> {
-  const definition: HealthTableDefinition = {
-    id: 'google-connections',
-    label: 'Google Connections',
-    tableName: 'google_calendar_connections',
+function tenantDetails(resolution: TenantContextResolution) {
+  return {
+    organizationId: resolution.organizationId,
+    branchId: resolution.branchId,
+    verificationMode: resolution.sourceTable
+      ? `${resolution.mode} · ${resolution.sourceTable}`
+      : resolution.mode,
+    liveVerificationActive: Boolean(resolution.context),
+    missingFields: resolution.missingFields,
   }
-  const startedAt = performance.now()
-  const { data, error } = await getSupabaseClient().functions.invoke(
-    'google-calendar-connections',
-    { body: { operation: 'list' } },
-  )
-  const latencyMs = elapsed(startedAt)
+}
 
-  if (error) {
-    return failureCheck(definition, latencyMs, error.message)
-  }
-  if (!Array.isArray(data)) {
-    return failureCheck(
-      definition,
-      latencyMs,
-      'Connection function returned an invalid response.',
+function missingTenantMessage(resolution: TenantContextResolution) {
+  return resolution.missingFields
+    .map((field) =>
+      field === 'organization' ? 'Missing organization' : 'Missing branch',
     )
-  }
-
-  const latestSync = data
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const record = item as {
-        createdAt?: string
-        created_at?: string
-        connectedAt?: string
-        connected_at?: string
-      }
-      return (
-        record.createdAt ??
-        record.created_at ??
-        record.connectedAt ??
-        record.connected_at ??
-        null
-      )
-    })
-    .filter((value): value is string => Boolean(value))
-    .sort()
-    .at(-1) ?? null
-
-  return successCheck(definition, data.length, latestSync, latencyMs)
+    .join(' · ')
 }
 
 function overallStatus(
@@ -195,61 +184,62 @@ function overallStatus(
 
 export async function getSystemHealthReport(): Promise<SystemHealthReport> {
   if (!isSupabaseConfigured()) {
+    const tenantResolution: TenantContextResolution = {
+      context: null,
+      organizationId: null,
+      branchId: null,
+      mode: 'Unavailable',
+      missingFields: ['organization', 'branch'],
+    }
     const checks = [
-      {
-        id: 'google-connections',
-        label: 'Google Connections',
-        tableName: 'google_calendar_connections',
-      },
-      ...healthTables,
-    ].map((definition) =>
-      configurationCheck(
-        definition,
-        'Supabase URL or anon key is not configured.',
+      protectedGoogleConnectionsCheck(),
+      ...healthTables.map((definition) =>
+        configurationCheck(
+          definition,
+          'Supabase URL or anon key is not configured.',
+        ),
       ),
-    )
+    ]
     return {
       checkedAt: new Date().toISOString(),
       source: 'Configuration',
       overallStatus: 'Warning',
+      tenant: tenantDetails(tenantResolution),
       checks,
     }
   }
 
-  const context = configuredContext()
-  if (!context) {
+  const tenantResolution = await resolveTenantContext()
+  if (!tenantResolution.context) {
+    const message = missingTenantMessage(tenantResolution)
     const checks = [
-      {
-        id: 'google-connections',
-        label: 'Google Connections',
-        tableName: 'google_calendar_connections',
-      },
-      ...healthTables,
-    ].map((definition) =>
-      configurationCheck(
-        definition,
-        'Organization or branch scope is not configured.',
+      protectedGoogleConnectionsCheck(),
+      ...healthTables.map((definition) =>
+        configurationCheck(definition, message),
       ),
-    )
+    ]
     return {
       checkedAt: new Date().toISOString(),
       source: 'Configuration',
       overallStatus: 'Warning',
+      tenant: tenantDetails(tenantResolution),
       checks,
     }
   }
 
-  const checks = await Promise.all([
-    queryGoogleConnections(),
-    ...healthTables.map((definition) =>
+  const context = tenantResolution.context
+  const liveChecks = await Promise.all(
+    healthTables.map((definition) =>
       queryTableHealth(definition, context),
     ),
-  ])
+  )
+  const checks = [protectedGoogleConnectionsCheck(), ...liveChecks]
 
   return {
     checkedAt: new Date().toISOString(),
     source: 'Supabase',
     overallStatus: overallStatus(checks),
+    tenant: tenantDetails(tenantResolution),
     checks,
   }
 }

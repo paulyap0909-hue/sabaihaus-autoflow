@@ -1,9 +1,11 @@
 import {
   Activity,
+  Building2,
   CheckCircle2,
   CircleAlert,
   Clock3,
   Database,
+  MapPin,
   RefreshCw,
   ShieldCheck,
   TriangleAlert,
@@ -99,6 +101,54 @@ export function SystemHealthPage() {
         <article><span><CircleAlert size={18} /></span><div><small>Errors</small><strong>{errors}</strong></div></article>
       </section>
 
+      <section className="tenant-context-card panel">
+        <div>
+          <span className="panel-kicker">Tenant Context</span>
+          <h2 className="panel-title">Resolved Verification Scope</h2>
+          <p>
+            Automatically resolved from the active session and available
+            operational data.
+          </p>
+        </div>
+        <article>
+          <span><Building2 size={16} /></span>
+          <div>
+            <small>Organization ID</small>
+            <strong>{report?.tenant.organizationId ?? 'Missing organization'}</strong>
+          </div>
+        </article>
+        <article>
+          <span><MapPin size={16} /></span>
+          <div>
+            <small>Branch ID</small>
+            <strong>{report?.tenant.branchId ?? 'Missing branch'}</strong>
+          </div>
+        </article>
+        <article>
+          <span><Activity size={16} /></span>
+          <div>
+            <small>Verification Mode</small>
+            <strong>{report?.tenant.verificationMode ?? 'Resolving tenant'}</strong>
+          </div>
+        </article>
+        <div
+          className={`tenant-verification-state ${
+            report?.tenant.liveVerificationActive ? 'is-live' : 'is-warning'
+          }`}
+        >
+          <span />
+          {report?.tenant.liveVerificationActive
+            ? 'Live Supabase Verification Active'
+            : report?.tenant.missingFields
+                .map((field) =>
+                  field === 'organization'
+                    ? 'Missing organization'
+                    : 'Missing branch',
+                )
+                .join(' · ') || 'Resolving tenant context'}
+        </div>
+      </section>
+
       <section className="records-panel system-health-panel">
         <div className="records-header">
           <div>
@@ -116,6 +166,10 @@ export function SystemHealthPage() {
           ))}
           {!report && <div className="system-health-loading">Querying system tables...</div>}
         </div>
+        <p className="system-health-security-note">
+          Google Calendar verification requires backend service role or Edge
+          Function.
+        </p>
       </section>
     </>
   )

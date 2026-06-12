@@ -16,5 +16,12 @@ export interface SystemHealthReport {
   checkedAt: string
   source: 'Supabase' | 'Configuration'
   overallStatus: 'Healthy' | 'Warning' | 'Error'
+  tenant: {
+    organizationId: string | null
+    branchId: string | null
+    verificationMode: string
+    liveVerificationActive: boolean
+    missingFields: Array<'organization' | 'branch'>
+  }
   checks: SystemHealthCheck[]
 }

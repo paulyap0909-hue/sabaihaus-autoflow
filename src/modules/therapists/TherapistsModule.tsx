@@ -9,10 +9,14 @@ import {
   UserCheck,
   UsersRound,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Drawer } from '../../components/Drawer'
 import { OperationalKpi } from '../../components/OperationalKpi'
 import { therapists } from '../../services/mockPhase3'
+import {
+  listTherapists,
+  type TherapistRecord,
+} from '../../services/repositories/therapistsRepository'
 import type { Therapist, TherapistAvailability } from '../../types/therapists'
 
 const availabilityClass: Record<TherapistAvailability, string> = {
@@ -22,31 +26,69 @@ const availabilityClass: Record<TherapistAvailability, string> = {
   'Off Duty': 'neutral',
 }
 
-export function TherapistsModule() {
+export function TherapistsModule({ refreshVersion = 0 }: { refreshVersion?: number }) {
   const [search, setSearch] = useState('')
   const [availability, setAvailability] = useState('All')
   const [selected, setSelected] = useState<Therapist | null>(null)
+  const [liveTherapists, setLiveTherapists] = useState<TherapistRecord[]>([])
+
+  useEffect(() => {
+    let active = true
+    listTherapists()
+      .then((records) => {
+        if (active) setLiveTherapists(records)
+      })
+      .catch(() => {
+        if (active) setLiveTherapists([])
+      })
+    return () => {
+      active = false
+    }
+  }, [refreshVersion])
+
+  const directory = useMemo(
+    () => [
+      ...liveTherapists.map((therapist) => ({
+        id: therapist.id,
+        name: therapist.fullName,
+        initials: therapist.fullName.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
+        specialties: therapist.specialties,
+        availability: (therapist.status === 'Active' ? 'Available' : 'Off Duty') as TherapistAvailability,
+        nextAvailable: therapist.status === 'Active' ? 'Now' : therapist.status,
+        sessions: 0,
+        revenue: 0,
+        rebookingRate: 0,
+        upsellRate: 0,
+        rating: therapist.rating,
+        commission: 0,
+        monthlyTarget: 1,
+        live: true,
+      })),
+      ...therapists.map((therapist) => ({ ...therapist, live: false })),
+    ],
+    [liveTherapists],
+  )
 
   const filtered = useMemo(
     () =>
-      therapists.filter(
+      directory.filter(
         (therapist) =>
           (!search ||
             therapist.name.toLowerCase().includes(search.toLowerCase()) ||
             therapist.specialties.some((specialty) => specialty.toLowerCase().includes(search.toLowerCase()))) &&
           (availability === 'All' || therapist.availability === availability),
       ),
-    [availability, search],
+    [availability, directory, search],
   )
 
-  const totalRevenue = therapists.reduce((sum, therapist) => sum + therapist.revenue, 0)
-  const averageRebooking = Math.round(therapists.reduce((sum, therapist) => sum + therapist.rebookingRate, 0) / therapists.length)
-  const averageRating = therapists.reduce((sum, therapist) => sum + therapist.rating, 0) / therapists.length
+  const totalRevenue = directory.reduce((sum, therapist) => sum + therapist.revenue, 0)
+  const averageRebooking = Math.round(directory.reduce((sum, therapist) => sum + therapist.rebookingRate, 0) / directory.length)
+  const averageRating = directory.reduce((sum, therapist) => sum + therapist.rating, 0) / directory.length
 
   return (
     <>
       <section className="operational-kpi-grid four">
-        <OperationalKpi label="Active Therapists" value={therapists.length} detail="2 available now" icon={UsersRound} />
+        <OperationalKpi label="Active Therapists" value={directory.length} detail="Live and demo directory" icon={UsersRound} />
         <OperationalKpi label="Team Revenue" value={`RM ${totalRevenue.toLocaleString()}`} detail="Current month" icon={CircleDollarSign} />
         <OperationalKpi label="Average Rebooking" value={`${averageRebooking}%`} detail="+3 points this month" icon={CalendarCheck2} />
         <OperationalKpi label="Customer Rating" value={averageRating.toFixed(1)} detail="Team average" icon={Star} tone="gold" />
@@ -72,6 +114,7 @@ export function TherapistsModule() {
               <div><strong>{therapist.name}</strong><span>{therapist.specialties.join(' · ')}</span></div>
               <span className={`domain-badge ${availabilityClass[therapist.availability]}`}>{therapist.availability}</span>
             </div>
+            {therapist.live && <span className="live-record-note">Live Supabase record</span>}
             <div className="next-availability"><Clock3 size={14} /><span>Next available</span><strong>{therapist.nextAvailable}</strong></div>
             <div className="therapist-metrics">
               <div><span>Revenue</span><strong>RM {therapist.revenue.toLocaleString()}</strong></div>

@@ -8,10 +8,14 @@ import {
   TicketCheck,
   TriangleAlert,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Drawer } from '../../components/Drawer'
 import { OperationalKpi } from '../../components/OperationalKpi'
 import { customerPackages, packageDefinitions } from '../../services/mockPhase3'
+import {
+  listPackageDefinitions,
+  type PackageDefinitionRecord,
+} from '../../services/repositories/packagesRepository'
 import type { CustomerPackage, PackageStatus } from '../../types/packages'
 
 const statusClass: Record<PackageStatus, string> = {
@@ -23,11 +27,45 @@ const statusClass: Record<PackageStatus, string> = {
 
 type PackageTab = 'Customer Packages' | 'Package Definitions'
 
-export function PackagesModule() {
+export function PackagesModule({ refreshVersion = 0 }: { refreshVersion?: number }) {
   const [activeTab, setActiveTab] = useState<PackageTab>('Customer Packages')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All')
   const [selected, setSelected] = useState<CustomerPackage | null>(null)
+  const [liveDefinitions, setLiveDefinitions] = useState<PackageDefinitionRecord[]>([])
+
+  useEffect(() => {
+    let active = true
+    listPackageDefinitions()
+      .then((records) => {
+        if (active) setLiveDefinitions(records)
+      })
+      .catch(() => {
+        if (active) setLiveDefinitions([])
+      })
+    return () => {
+      active = false
+    }
+  }, [refreshVersion])
+
+  const definitions = [
+    ...liveDefinitions.map((definition) => ({
+      id: definition.id,
+      name: definition.name,
+      category: definition.service,
+      sessions: definition.totalSessions,
+      validityDays: definition.validityDays,
+      price: definition.price,
+      activeCustomers: 0,
+      live: true,
+      active: definition.active,
+    })),
+    ...packageDefinitions.map((definition) => ({
+      ...definition,
+      live: false,
+      active: true,
+    })),
+  ]
 
   const filtered = useMemo(
     () =>
@@ -85,7 +123,7 @@ export function PackagesModule() {
 
         {activeTab === 'Package Definitions' && (
           <div className="definition-grid">
-            {packageDefinitions.map((definition) => (
+            {definitions.map((definition) => (
               <article className="definition-card" key={definition.id}>
                 <div className="definition-top"><span>{definition.category}</span><PackageOpen size={18} /></div>
                 <h3>{definition.name}</h3>
@@ -93,7 +131,7 @@ export function PackagesModule() {
                 <div className="definition-details">
                   <span><strong>{definition.sessions}</strong> sessions</span>
                   <span><strong>{definition.validityDays}</strong> days valid</span>
-                  <span><strong>{definition.activeCustomers}</strong> customers</span>
+                  <span><strong>{definition.live ? definition.active ? 'Active' : 'Inactive' : definition.activeCustomers}</strong> {definition.live ? '· Live Supabase' : 'customers'}</span>
                 </div>
               </article>
             ))}

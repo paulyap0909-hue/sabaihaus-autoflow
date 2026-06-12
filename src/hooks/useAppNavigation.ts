@@ -3,6 +3,7 @@ import type { AppNavigationState, PageKey } from '../types/navigation'
 
 const pathToPage: Record<string, PageKey> = {
   '/dashboard': 'dashboard',
+  '/action-center': 'action-center',
   '/appointments': 'appointments',
   '/customers': 'customers',
   '/wellness-profiles': 'wellness-profiles',

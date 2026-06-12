@@ -1,5 +1,6 @@
 import { AppLayout } from './layouts/AppLayout'
 import { AppointmentsPage } from './pages/AppointmentsPage'
+import { ActionCenterPage } from './pages/ActionCenterPage'
 import { CommissionCenterPage } from './pages/CommissionCenterPage'
 import { CustomersPage } from './pages/CustomersPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -19,6 +20,7 @@ import './App.css'
 
 const pages = {
   dashboard: DashboardPage,
+  'action-center': ActionCenterPage,
   appointments: AppointmentsPage,
   customers: CustomersPage,
   'wellness-profiles': WellnessProfilesPage,

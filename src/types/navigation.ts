@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 
 export type PageKey =
   | 'dashboard'
+  | 'action-center'
   | 'appointments'
   | 'customers'
   | 'wellness-profiles'
