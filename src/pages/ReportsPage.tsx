@@ -1,14 +1,22 @@
-import { ChartNoAxesCombined } from 'lucide-react'
-import { PlaceholderPage } from '../components/PlaceholderPage'
+import { BrainCircuit } from 'lucide-react'
+import { PageHeader } from '../components/PageHeader'
+import { BusinessIntelligenceCenter } from '../modules/businessIntelligence/BusinessIntelligenceCenter'
 
 export function ReportsPage() {
   return (
-    <PlaceholderPage
-      title="Reports"
-      description="Understand revenue, retention, therapist performance, package liability, and membership health without spreadsheet work."
-      icon={ChartNoAxesCombined}
-      actionLabel="Create report"
-      features={['Revenue', 'Retention', 'Team performance', 'Package & membership health']}
-    />
+    <>
+      <PageHeader
+        eyebrow="Executive intelligence"
+        title="Business Intelligence Center"
+        description="Turn revenue, customer behavior, therapist performance and future obligations into clear management decisions for the whole wellness business."
+        action={
+          <span className="bi-header-badge">
+            <BrainCircuit size={15} />
+            Wellness OS intelligence
+          </span>
+        }
+      />
+      <BusinessIntelligenceCenter />
+    </>
   )
 }

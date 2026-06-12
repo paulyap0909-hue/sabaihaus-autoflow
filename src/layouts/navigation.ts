@@ -90,7 +90,7 @@ export const navigationSections: NavigationSection[] = [
     items: [
       {
         id: 'reports',
-        label: 'Reports',
+        label: 'Business Intelligence',
         path: '/reports',
         icon: ChartNoAxesCombined,
       },
