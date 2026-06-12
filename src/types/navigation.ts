@@ -10,9 +10,10 @@ export type PageKey =
   | 'commission-center'
   | 'memberships'
   | 'inventory-center'
-  | 'notification-center'
+  | 'communication'
   | 'reports'
   | 'settings'
+  | 'admin-system-health'
 
 export interface NavigationItem {
   id: PageKey

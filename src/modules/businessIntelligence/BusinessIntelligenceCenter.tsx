@@ -20,6 +20,8 @@ import type {
 import { AiInsightsView } from './AiInsightsView'
 import { CustomerIntelligenceView } from './CustomerIntelligenceView'
 import { ExecutiveDashboard } from './ExecutiveDashboard'
+import { ExecutiveBriefView } from './ExecutiveBriefView'
+import { buildManagementBrain } from './managementBrain'
 import { PackageIntelligenceView } from './PackageIntelligenceView'
 import { RevenueIntelligenceView } from './RevenueIntelligenceView'
 import { TherapistIntelligenceView } from './TherapistIntelligenceView'
@@ -29,6 +31,7 @@ const sections: Array<{
   icon: typeof BriefcaseBusiness
 }> = [
   { label: 'Executive Dashboard', icon: BriefcaseBusiness },
+  { label: 'Executive Brief', icon: BrainCircuit },
   { label: 'Therapist Intelligence', icon: Sparkles },
   { label: 'Customer Intelligence', icon: UsersRound },
   { label: 'Package Intelligence', icon: PackageOpen },
@@ -91,6 +94,10 @@ export function BusinessIntelligenceCenter() {
   }, [query])
 
   const snapshot = result.snapshot
+  const managementBrain = useMemo(
+    () => buildManagementBrain(snapshot),
+    [snapshot],
+  )
 
   return (
     <div className="business-intelligence-center">
@@ -146,6 +153,9 @@ export function BusinessIntelligenceCenter() {
 
       {activeSection === 'Executive Dashboard' && (
         <ExecutiveDashboard snapshot={snapshot} />
+      )}
+      {activeSection === 'Executive Brief' && (
+        <ExecutiveBriefView brain={managementBrain} />
       )}
       {activeSection === 'Therapist Intelligence' && (
         <TherapistIntelligenceView therapists={snapshot.therapists} />

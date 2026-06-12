@@ -1,5 +1,6 @@
 export type BusinessIntelligenceSection =
   | 'Executive Dashboard'
+  | 'Executive Brief'
   | 'Therapist Intelligence'
   | 'Customer Intelligence'
   | 'Package Intelligence'
@@ -223,4 +224,114 @@ export interface BusinessIntelligenceResult {
   sourceLabel: 'Live Supabase data' | 'Mock intelligence fallback'
   statusLabel: 'Live Data Active' | 'Mock Fallback Active'
   fallbackReason?: string
+}
+
+export type ManagementPriority = 'Critical' | 'High' | 'Medium'
+export type ManagementImpact = 'Revenue' | 'Retention' | 'Utilization'
+export type ManagementRiskLevel = 'Critical' | 'High' | 'Moderate' | 'Low'
+
+export interface ManagementRecommendation {
+  id: string
+  category: 'Growth' | 'Retention' | 'Capacity' | 'Package' | 'Revenue'
+  title: string
+  summary: string
+  priority: ManagementPriority
+  impact: ManagementImpact
+  estimatedImpact: string
+  confidence: number
+  actionLabel: string
+}
+
+export interface GrowthOpportunity {
+  id: string
+  title: string
+  signal: string
+  potentialMonthlyUpside: number
+  confidence: number
+  recommendedAction: string
+}
+
+export interface RetentionAlert {
+  id: string
+  customer: string
+  segment: string
+  daysInactive: number
+  lifetimeValue: number
+  riskScore: number
+  suggestedAction: string
+}
+
+export interface CapacityAlert {
+  id: string
+  title: string
+  utilization: number
+  availableCapacity: number
+  estimatedUpside: number
+  confidence: number
+  recommendedAction: string
+}
+
+export interface TherapistOpportunity {
+  id: string
+  therapist: string
+  type: 'Top performer' | 'Underutilized' | 'Rebooking' | 'Cancellation risk'
+  metric: string
+  coachingAction: string
+  marketingAction: string
+}
+
+export interface PackageRiskAlert {
+  id: string
+  packageName: string
+  riskLevel: ManagementRiskLevel
+  estimatedExposure: number
+  outstandingSessions: number
+  expiringWithin30Days: number
+  recommendedMitigation: string
+}
+
+export interface RevenueAlert {
+  id: string
+  title: string
+  value: number
+  displayValue: string
+  direction: 'positive' | 'negative' | 'neutral'
+  explanation: string
+}
+
+export interface ManagementHealthScore {
+  score: number
+  status: 'Strong' | 'Stable' | 'Attention'
+  components: Array<{
+    label:
+      | 'Revenue Growth'
+      | 'Customer Retention'
+      | 'Therapist Utilization'
+      | 'Package Liability'
+      | 'Capacity Efficiency'
+      | 'Customer Activity'
+    score: number
+    weight: number
+  }>
+}
+
+export interface ExecutiveBrief {
+  greeting: string
+  headline: string
+  observations: string[]
+  recommendedActions: string[]
+}
+
+export interface ManagementBrainResult {
+  generatedAt: string
+  executiveBrief: ExecutiveBrief
+  managementInsights: ManagementRecommendation[]
+  growthOpportunities: GrowthOpportunity[]
+  retentionAlerts: RetentionAlert[]
+  capacityAlerts: CapacityAlert[]
+  packageRiskAlerts: PackageRiskAlert[]
+  revenueAlerts: RevenueAlert[]
+  therapistOpportunities: TherapistOpportunity[]
+  recommendedActions: ManagementRecommendation[]
+  health: ManagementHealthScore
 }

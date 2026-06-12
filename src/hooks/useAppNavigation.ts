@@ -11,9 +11,10 @@ const pathToPage: Record<string, PageKey> = {
   '/commission-center': 'commission-center',
   '/memberships': 'memberships',
   '/inventory-center': 'inventory-center',
-  '/notification-center': 'notification-center',
+  '/communication': 'communication',
   '/reports': 'reports',
   '/settings': 'settings',
+  '/admin/system-health': 'admin-system-health',
 }
 
 const pageToPath = Object.fromEntries(

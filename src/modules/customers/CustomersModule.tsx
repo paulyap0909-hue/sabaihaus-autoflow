@@ -1,5 +1,4 @@
 import {
-  CalendarClock,
   Crown,
   Gem,
   HeartHandshake,
@@ -18,6 +17,7 @@ import { FormField } from '../../components/FormField'
 import { OperationalKpi } from '../../components/OperationalKpi'
 import { customers as initialCustomers } from '../../services/mockOperations'
 import type { Customer, RetentionStatus } from '../../types/customers'
+import { CustomerTimeline } from './CustomerTimeline'
 
 const retentionClass: Record<RetentionStatus, string> = {
   Active: 'success',
@@ -200,19 +200,7 @@ export function CustomersModule({
               <article><PackageCheck size={17} /><span>Package balance</span><strong>{selectedCustomer.packageBalance} sessions</strong></article>
               <article><Crown size={17} /><span>Membership</span><strong>{selectedCustomer.membershipTier}</strong></article>
             </div>
-            <section className="profile-section">
-              <h3><CalendarClock size={17} /> Visit history</h3>
-              {selectedCustomer.visits.length ? selectedCustomer.visits.map((visit) => (
-                <div className="visit-row" key={`${visit.date}-${visit.service}`}>
-                  <div><strong>{visit.service}</strong><span>{visit.date} · {visit.therapist}</span></div>
-                  <strong>RM {visit.amount}</strong>
-                </div>
-              )) : <p className="empty-copy">No completed visits yet.</p>}
-            </section>
-            <section className="profile-section">
-              <h3>Follow-up notes</h3>
-              <p className="profile-note">{selectedCustomer.followUpNotes}</p>
-            </section>
+            <CustomerTimeline customerName={selectedCustomer.name} />
           </div>
         )}
       </Drawer>

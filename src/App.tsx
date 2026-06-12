@@ -5,12 +5,13 @@ import { CustomersPage } from './pages/CustomersPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { MembershipsPage } from './pages/MembershipsPage'
 import { InventoryCenterPage } from './pages/InventoryCenterPage'
-import { NotificationCenterPage } from './pages/NotificationCenterPage'
+import { CommunicationCenterPage } from './pages/CommunicationCenterPage'
 import { PackagesPage } from './pages/PackagesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TherapistsPage } from './pages/TherapistsPage'
 import { WellnessProfilesPage } from './pages/WellnessProfilesPage'
+import { SystemHealthPage } from './pages/SystemHealthPage'
 import { useAppNavigation } from './hooks/useAppNavigation'
 import { useDemoAuth } from './hooks/useDemoAuth'
 import { LoginPage } from './pages/LoginPage'
@@ -26,9 +27,10 @@ const pages = {
   'commission-center': CommissionCenterPage,
   memberships: MembershipsPage,
   'inventory-center': InventoryCenterPage,
-  'notification-center': NotificationCenterPage,
+  communication: CommunicationCenterPage,
   reports: ReportsPage,
   settings: SettingsPage,
+  'admin-system-health': SystemHealthPage,
 }
 
 function App() {

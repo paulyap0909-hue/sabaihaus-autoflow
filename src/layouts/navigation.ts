@@ -78,9 +78,9 @@ export const navigationSections: NavigationSection[] = [
         icon: Boxes,
       },
       {
-        id: 'notification-center',
-        label: 'Notification Center',
-        path: '/notification-center',
+        id: 'communication',
+        label: 'Communication',
+        path: '/communication',
         icon: BellRing,
       },
     ],

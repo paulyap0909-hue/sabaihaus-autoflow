@@ -26,14 +26,16 @@ import { FilterControl } from '../../components/FilterControl'
 import { FormField } from '../../components/FormField'
 import { OperationalKpi } from '../../components/OperationalKpi'
 import {
-  demoGoogleCalendarAdapter,
-  type TherapistCalendarSync,
-} from '../../services/calendar/googleCalendarAdapter'
+  calendarIntegrationMode,
+  connectTherapistCalendar,
+  googleCalendarGateway,
+} from '../../services/calendar/googleCalendarGateway'
 import {
   appointments as initialAppointments,
   customers,
 } from '../../services/mockOperations'
 import type { Appointment, AppointmentStatus } from '../../types/appointments'
+import type { TherapistCalendarConnection } from '../../types/googleCalendar'
 import { AppointmentScheduleBoard } from './AppointmentScheduleBoard'
 import {
   appointmentViews,
@@ -100,9 +102,11 @@ export function AppointmentsModule({
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [eventError, setEventError] = useState('')
   const [calendarMessage, setCalendarMessage] = useState(
-    'Demo calendars ready for two-way synchronization.',
+    `${calendarIntegrationMode()} ready for two-way synchronization.`,
   )
-  const [calendarSyncs, setCalendarSyncs] = useState<TherapistCalendarSync[]>([])
+  const [calendarSyncs, setCalendarSyncs] = useState<
+    TherapistCalendarConnection[]
+  >([])
   const [isSyncing, setIsSyncing] = useState(false)
 
   const filtered = useMemo(
@@ -170,13 +174,13 @@ export function AppointmentsModule({
       const updatedAppointment = { ...appointment, status: nextStatus }
 
       if (nextStatus === 'Cancelled') {
-        await demoGoogleCalendarAdapter.deleteEvent(updatedAppointment)
+        await googleCalendarGateway.deleteEvent(updatedAppointment)
         setCalendarMessage(
           `${appointment.customer}'s event was removed from Google Calendar.`,
         )
       } else {
         const syncResult =
-          await demoGoogleCalendarAdapter.updateEvent(updatedAppointment)
+          await googleCalendarGateway.updateEvent(updatedAppointment)
         updatedAppointment.googleEventId = syncResult.eventId
         setCalendarMessage(
           `${appointment.customer}'s status was synced to Google Calendar.`,
@@ -222,7 +226,7 @@ export function AppointmentsModule({
     try {
       setEventError('')
       setProcessingId(appointmentId)
-      const syncResult = await demoGoogleCalendarAdapter.updateEvent(candidate)
+      const syncResult = await googleCalendarGateway.updateEvent(candidate)
       candidate.googleEventId = syncResult.eventId
       setRecords((current) =>
         current.map((item) => (item.id === appointmentId ? candidate : item)),
@@ -243,11 +247,11 @@ export function AppointmentsModule({
     try {
       setIsSyncing(true)
       setEventError('')
-      const syncs =
-        await demoGoogleCalendarAdapter.syncTherapistCalendars(records)
+      const syncs = await googleCalendarGateway.getConnections()
+      await googleCalendarGateway.syncFromGoogle()
       setCalendarSyncs(syncs)
       setCalendarMessage(
-        `${syncs.length} therapist calendars synchronized successfully.`,
+        `${syncs.filter((item) => item.status === 'Connected').length} therapist calendars synchronized successfully.`,
       )
     } catch (error) {
       setEventError(
@@ -286,7 +290,7 @@ export function AppointmentsModule({
 
     try {
       const syncResult =
-        await demoGoogleCalendarAdapter.createEvent(newAppointment)
+        await googleCalendarGateway.createEvent(newAppointment)
       newAppointment.googleEventId = syncResult.eventId
       setRecords((current) => [newAppointment, ...current])
       setCalendarMessage(
@@ -319,12 +323,58 @@ export function AppointmentsModule({
             </div>
           </div>
           <div className="calendar-sync-action">
-            <span><Cloud size={13} /> {calendarSyncs.length || 4} calendars connected</span>
+            <span><Cloud size={13} /> {calendarSyncs.filter((item) => item.status === 'Connected').length || 3} calendars connected</span>
             <button type="button" onClick={() => void syncCalendars()} disabled={isSyncing}>
               <RefreshCw className={isSyncing ? 'is-spinning' : ''} size={15} />
               {isSyncing ? 'Syncing...' : 'Sync calendars'}
             </button>
           </div>
+        </div>
+
+        <div className="therapist-calendar-connections">
+          {(calendarSyncs.length
+            ? calendarSyncs
+            : [
+                { therapistId: 'TH-01', therapistName: 'Nok S.', calendarId: 'demo-1', calendarName: 'Nok S. · Sabai Haus', status: 'Connected' as const, lastSyncAt: '2026-06-12T08:45:00+08:00', lastError: null },
+                { therapistId: 'TH-02', therapistName: 'Aom M.', calendarId: 'demo-2', calendarName: 'Aom M. · Sabai Haus', status: 'Connected' as const, lastSyncAt: '2026-06-12T08:45:00+08:00', lastError: null },
+                { therapistId: 'TH-03', therapistName: 'Mei L.', calendarId: 'demo-3', calendarName: 'Mei L. · Sabai Haus', status: 'Connected' as const, lastSyncAt: '2026-06-12T08:45:00+08:00', lastError: null },
+                { therapistId: 'TH-04', therapistName: 'Pim J.', calendarId: null, calendarName: null, status: 'Disconnected' as const, lastSyncAt: null, lastError: null },
+              ]).map((connection) => (
+            <article key={connection.therapistId}>
+              <span className={`calendar-connection-dot is-${connection.status.toLowerCase().replace(' ', '-')}`} />
+              <div>
+                <strong>{connection.therapistName}</strong>
+                <span>{connection.calendarName ?? 'No Google Calendar connected'}</span>
+              </div>
+              <div>
+                <span className={`domain-badge ${connection.status === 'Connected' ? 'success' : connection.status === 'Sync Error' ? 'danger' : 'neutral'}`}>
+                  {connection.status}
+                </span>
+                <small>
+                  {connection.lastSyncAt
+                    ? `Last sync ${new Date(connection.lastSyncAt).toLocaleString('en-MY')}`
+                    : connection.lastError ?? 'Not synchronized'}
+                </small>
+              </div>
+              {connection.status === 'Disconnected' && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void connectTherapistCalendar(connection.therapistId).catch(
+                      (error) =>
+                        setCalendarMessage(
+                          error instanceof Error
+                            ? error.message
+                            : 'Calendar connection failed.',
+                        ),
+                    )
+                  }
+                >
+                  Connect
+                </button>
+              )}
+            </article>
+          ))}
         </div>
 
         <div className="appointment-view-tabs" role="tablist" aria-label="Appointment views">
